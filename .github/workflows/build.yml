@@ -43,16 +43,19 @@ jobs:
           export CROSS_COMPILE=arm-linux-gnueabihf-
           make bcm96855_mb4784w_defconfig
           make -j$(nproc)
-          ls -lh u-boot.bin u-boot.dtb
+          echo "=== 产物 ==="
+          ls -lh u-boot.bin || { echo "::error::u-boot.bin 未生成"; exit 1; }
+          # CONFIG_OF_EMBED=y 时没有独立 u-boot.dtb，属正常
+          ls -lh u-boot.dtb 2>/dev/null || echo "（OF_EMBED 模式，DTB 已内嵌）"
 
       - name: Package
         run: |
           mkdir -p out
           cp -v u-boot/u-boot.bin out/
-          cp -v u-boot/u-boot.dtb out/
           cp -v u-boot/System.map out/
           cp -v u-boot/.config out/config-used
           cp -v board/mb4784w/uEnv.txt out/
+          [ -f u-boot/u-boot.dtb ] && cp -v u-boot/u-boot.dtb out/ || true
           ( cd out && sha256sum * > SHA256SUMS )
           ls -lh out/
           echo "## U-Boot 构建结果 (${UBOOT_REF})" >> "$GITHUB_STEP_SUMMARY"
