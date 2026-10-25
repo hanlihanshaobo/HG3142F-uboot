@@ -47,6 +47,7 @@ docs/
   TTL-RECOVERY.md              # 串口救援流程
   SERIAL-LOCK.md               # 串口被 fhuart_enable=0 锁死的原因与解锁方法
   ENV-WRITE.md                 # **/proc/nvram/set 写 U-Boot env（绕过 mtd 限制）**
+  SERIAL-LOGIN.md              # **串口 root shell：账号体系、加账号、登录流程**
 ```
 
 > ⚠️ 直接接串口看不到输出、打不断 autoboot 是**固件主动关闭 UART**，不是接线问题。先看 [`docs/SERIAL-LOCK.md`](docs/SERIAL-LOCK.md)。
