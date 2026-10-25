@@ -18,6 +18,10 @@
 流控   无
 ```
 
+> ⚠️ **本机 UART 被固件默认关闭**（`fhuart_enable=0`），直接接线看不到任何输出、也打断不了 autoboot。
+> 先按 [`SERIAL-LOCK.md`](SERIAL-LOCK.md) 用 root 打开（`fw_setenv fhuart_enable 1` 或 `echo 0 1 > /proc/driver/uart/enable`）。
+> 另外控制台设备是 **ttyAMA0**（PL011），不是 ttyS0。
+
 ## 接线
 
 | 光猫侧 | TTL 模块侧 |
