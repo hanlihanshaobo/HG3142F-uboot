@@ -113,3 +113,36 @@ bootz 0x01000000 - 0x03000000
 sha256sum mtd1_loader.bin
 # 应与 firmware_backup/HG3142F_SN071604000590814_20261025/MANIFEST_sha256.txt 中一致
 ```
+
+## 原厂 loader 实证能力（mtd1 字符串分析，2026-10-26）
+
+对 `mtd1_loader.bin` 做静态字符串分析，确认原厂 U-Boot 具备：
+
+```
+bootdelay=1                          ← 有 1 秒打断窗口
+bootcmd=printenv;run once;sdk boot_img
+once=true
+r - Boot Fallback; 1 - recovery      ← 有启动菜单：r=切 A/B 槽，1=恢复模式
+Use enter to confirm input menu selection
+Recovery / Fallback                  ← 菜单项标题
+ipaddr=192.168.1.1                   ← 默认网络环境
+serverip=192.168.1.100
+netmask=255.255.255.0
+env_boot_magic=16384@0x40000,0xb1000 ← NAND 里的 boot magic 区
+```
+
+结论：
+
+1. **A/B 槽回退（`r`）**：menu 里的 Boot Fallback 大概率切到另一槽启动——这就是最方便的软救援。
+2. **恢复模式（`1`）**：具体行为待实机验证（可能是恢复网页或最小系统）。
+3. **网络栈迹象**：env 自带 ipaddr/serverip，说明编译进了网络支持；但字符串里**没扫到 tftp/dhcp 命令**（可能被压缩或裁剪），串口 `help` 一看便知。
+4. UBI/UBIFS 完整支持（fastmap、坏块管理字符串齐全）。
+
+### 串口接上后按顺序确认（一次搞定）
+
+```
+help          # 有没有 tftp / loadb / nand write / imxtract
+printenv      # 完整环境变量，重点 bootargs / once / sdk
+菜单 r        # 试 A/B 槽切换（无风险）
+菜单 1        # 看恢复模式是什么（先别真刷）
+```
