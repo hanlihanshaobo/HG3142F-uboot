@@ -1,0 +1,28 @@
+# HG3142F U-Boot 环境变量草稿
+# 注意：主线 RAM 版 defconfig 使用 CONFIG_ENV_IS_NOWHERE，改动重启即失效。
+# 调试时逐条 setenv；确认无误后再考虑持久化（阶段 C）。
+
+# ---- 网络 ----
+ipaddr=192.168.1.10
+serverip=192.168.1.2
+netmask=255.255.255.0
+gatewayip=192.168.1.1
+
+# ---- 地址 ----
+loadaddr=0x01000000
+fdtaddr=0x03000000
+ubootaddr=0x02000000
+
+# ---- 加载本仓库 U-Boot 到 RAM 验证 ----
+load_uboot=tftp ${ubootaddr} u-boot.bin; go ${ubootaddr}
+
+# ---- 加载 OpenWrt initramfs（一次成镜像）----
+load_initramfs=tftp ${loadaddr} openwrt-initramfs.bin; bootm ${loadaddr}
+
+# ---- 分开加载 zImage + dtb ----
+load_kernel=tftp ${loadaddr} zImage
+load_fdt=tftp ${fdtaddr} bcm96855-mb4784w.dtb
+boot_owrt=run load_kernel; run load_fdt; bootz ${loadaddr} - ${fdtaddr}
+
+# ---- 阶段 2：从 UBI 引导（卷布局确定后启用，勿照抄原厂）----
+# bootargs=console=ttyS0,115200 ubi.mtd=image root=/dev/ubiblock0_0 rootfstype=squashfs rootwait

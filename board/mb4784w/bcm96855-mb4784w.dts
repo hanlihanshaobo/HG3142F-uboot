@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * FiberHome HG3142F — Broadcom BCM6855x (bcm96855)
+ *
+ * 相对主线 bcm96855.dts 的差异：
+ *   - 内存 512 MiB（主线参考板写的是 0x08000000 = 128 MiB）
+ *   - model/compatible 标注本机
+ *   - 串口 115200（与原厂一致）
+ */
+
+/dts-v1/;
+
+#include "bcm6855.dtsi"
+
+/ {
+	model = "FiberHome HG3142F";
+	compatible = "fiberhome,mb4784w", "brcm,bcm96855", "brcm,bcm6855", "brcm,bcmbca";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x20000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};

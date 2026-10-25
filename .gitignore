@@ -1,0 +1,8 @@
+u-boot/
+out/
+*.o
+*.bin
+!board/**/*.bin
+.DS_Store
+.vscode/
+.idea/
