@@ -57,23 +57,28 @@ fi
 
 ## 解锁方法（需要 root，三条路，按推荐顺序）
 
-### 方案 A：改 U-Boot 环境变量（推荐，最干净）
+> ⚠️ **2026-10-26 实测修正**：方案 A 走不通 —— 厂商禁止了用户态对 `/dev/mtd*` 的写操作，
+> `fw_setenv` 报 `Can't open /dev/mtd1: Permission denied`（即使 uid=0、Capabilities 全开）。
+> 详见 [`BOOT-TRACE.md`](BOOT-TRACE.md)。当前只有方案 B（运行时临时打开）可用。
 
-原厂 rootfs 自带 `fw_printenv` / `fw_setenv`（`/usr/bin/`），它会正确同时更新 main 和 spare 两份 env：
+### 方案 A：改 U-Boot 环境变量（❌ 实测不可用）
+
+原厂 rootfs 自带 `fw_printenv` / `fw_setenv`，但**写会被内核拒绝**：
+
+```
+Can't open /dev/mtd1: Permission denied
+Error: can't write fw_env to flash
+```
 
 ```sh
-# 先看现值
+# 理论上应该是这样（实际被内核拒绝，仅作记录）
 fw_printenv fhuart_enable
-# 改成 1
 fw_setenv fhuart_enable 1
-# 再确认
-fw_printenv fhuart_enable
 reboot
 ```
 
-重启后 U-Boot 会把 `fhuart_enable=1` 追加进内核命令行，`rcS1` 就不会再关 UART。
-
-副作用：无（只影响 UART 使能）。
+若将来能拿到可写的 mtd（例如通过 U-Boot 控制台执行 `setenv`/`saveenv`），这条依然是最干净的做法：
+U-Boot 会把 `fhuart_enable=1` 追加进内核命令行，`rcS1` 就不会再关 UART。
 
 ### 方案 B：运行时临时打开（立即生效，重启失效）
 
