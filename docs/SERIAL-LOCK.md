@@ -57,7 +57,10 @@ fi
 
 ## 解锁方法（需要 root，三条路，按推荐顺序）
 
-> ⚠️ **2026-10-26 实测修正**：方案 A 走不通 —— 厂商禁止了用户态对 `/dev/mtd*` 的写操作，
+> ✅ **2026-10-26 二次修正**：找到了绕过 mtd 限制的通道 —— `echo 'key=value' > /proc/nvram/set`，实测可写入并落盘。
+> 详见 [`ENV-WRITE.md`](ENV-WRITE.md)。下面「方案 A」的描述保留作历史记录。
+
+> ⚠️ 首次实测：方案 A（fw_setenv）走不通 —— 厂商禁止了用户态对 `/dev/mtd*` 的写操作，
 > `fw_setenv` 报 `Can't open /dev/mtd1: Permission denied`（即使 uid=0、Capabilities 全开）。
 > 详见 [`BOOT-TRACE.md`](BOOT-TRACE.md)。当前只有方案 B（运行时临时打开）可用。
 
