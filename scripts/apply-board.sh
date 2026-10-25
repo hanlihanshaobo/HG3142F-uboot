@@ -19,12 +19,8 @@ MAKEFILE="$TREE/arch/arm/dts/Makefile"
 if grep -q "bcm96855-mb4784w.dtb" "$MAKEFILE"; then
 	echo "    已存在，跳过"
 else
-	# 追加到 bcmbca 相关的 dtb 列表行之后；找不到就新建一行
-	if grep -q "bcm96855.dtb" "$MAKEFILE"; then
-		sed -i 's/\(bcm96855\.dtb.*\)$/\1 \\\n\tbcm96855-mb4784w.dtb/' "$MAKEFILE"
-	else
-		printf '\n# FiberHome HG3142F\ndtb-$(CONFIG_TARGET_BCM96855) += bcm96855-mb4784w.dtb\n' >> "$MAKEFILE"
-	fi
+	# 独立追加一行赋值（不要动原有的续行块：带 TAB 前缀会被 make 当成 recipe）
+	printf '\ndtb-$(CONFIG_TARGET_BCM96855) += bcm96855-mb4784w.dtb\n' >> "$MAKEFILE"
 	echo "    已注册"
 fi
 
