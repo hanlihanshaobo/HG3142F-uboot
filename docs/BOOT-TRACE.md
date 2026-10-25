@@ -95,3 +95,41 @@ fdt           load 0x07f74000
 - **telnet 不持久**：`/fh_tool` 的 TelnetEnable 只对本次运行有效，重启后消失，需要重新调用。
 - 串口运行时静音：`echo 0 1 > /proc/driver/uart/enable` 可临时打开（实测往 `/dev/console` 写的测试串能上屏）。
 - 想长期有串口日志：只能改 env 的 `fhuart_enable=1`，而 env 写不了 —— 除非走物理手段。
+
+## 6. 刷写通道实测：全线封锁（2026-10-26）
+
+想把自制镜像写进设备，把所有软件路径都试了一遍，结论如下。
+
+### 已确认被拒的操作（都以 root、全 Capabilities 执行）
+
+| 操作 | 结果 |
+|---|---|
+| `fw_setenv` 写 env（/dev/mtd1） | `Can't open /dev/mtd1: Permission denied` |
+| `echo > /dev/mtd1` / `dd of=/dev/mtd2` / `mtdblock*` | `Permission denied` |
+| `ubiupdatevol /dev/ubi0_5`（静态卷 bootfs2） | `error 1 (Operation not permitted)` |
+| `ubiupdatevol /dev/ubi0_6`（动态卷 rootfs2） | 同上 EPERM |
+| `mount -o remount,rw /fhdata` + 建 factorymodeflag | `Read-only file system` |
+| `bcm_bootstate 1`（切槽） | 无效，仍 `Reboot Partition: First` |
+
+UBI 本身不是只读挂载（dmesg 无 ro 标记，`/sys/class/ubi/ubi0_*/ro` 为空、corrupted=0），
+所以 EPERM 来自**厂商加的内核层写保护**，不是 UBI 自身状态。
+
+### 已验证可用的能力（只读侧）
+
+- **读**：`dd if=/dev/ubi0_5` 可完整读出（sha256 与本机 UBI 镜像提取结果一致：`5b7a7f1f…`）
+- **文件下发**：设备 `curl http://<PC>:8089/bootfs2.ubifs -o /tmp/bf.bin` 正常
+- **U-Boot 原厂工具存在**：`bcm_bootstate`（读状态可用）、`bcm_flashutil`、`ubiupdatevol`、`ubiformat`、`nandwrite`
+
+### 结论
+
+**在运行中的原厂系统里无法刷写任何东西**（运营商定制固件刻意锁死）。要真正落地 OpenWrt，只剩三条路：
+
+1. **硬件路线（最确定）**：NAND 编程器（TSOP48 夹具或拆焊）→ 离线修改 loader 分区里的 U-Boot env，
+   把 `bootcmd` 改成可交互（或直接刷自编译 loader），顺便把 `fhuart_enable` 置 1。
+   我们已有整片 256MB 备份，可无损回写。
+2. **厂商升级通道**：走 Web/TR-069 固件升级接口，试探是否校验签名（FIT 自带 sha256，另有 dbg_cert / anti-rollback 痕迹）。
+3. **继续挖私有解锁**：factory mode 需要写 `/fhdata`，而该分区只读且 mtd 禁写，暂时无解。
+
+> 附带收获：`bcm_bootstate` 的存在说明 A/B 切换在原厂是支持的（工具调用 `libbcm_flashutil.so` 计算 metadata CRC），
+> 只是写操作同样被锁。若将来拿到硬件写权限，这个工具可直接用。
+
